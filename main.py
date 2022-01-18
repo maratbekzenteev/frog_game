@@ -135,6 +135,8 @@ while running:
             if event.key == 1073741903:
                 x += 2.5
                 x = x % 360
+    x += 2.5
+    x = x % 360
     render(x, level, y, screen)
     pygame.display.flip()
     clock.tick(30)
