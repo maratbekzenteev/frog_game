@@ -4,6 +4,58 @@ import math
 import os
 
 
+class Frog(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.acceleration = 0
+        self.state = 'ground'
+        # ground - when not moving vertically
+        # fall - when falling, jump - when jumping
+
+        self.direction = 'right'
+        self.frame = 0
+        self.image = load_image('fr0.png', (163, 73, 164))
+        # frog sprite names:
+        # 'f' for 'frog', 'l' or 'r' - direction, '0' to '8' - frame num
+        self.rect = self.image.get_rect()
+        self.rect.x = X_AXIS - BLOCK_R
+        self.rect.y = 6 * BLOCK_H
+
+    def step_left(self):
+        if self.direction == 'right':
+            self.direction = 'left'
+            self.frame = 0
+        if not self.frame:
+            self.frame = 2
+        else:
+            self.frame = self.frame % 8 + 1
+
+    def step_right(self):
+        if self.direction == 'left':
+            self.direction = 'right'
+            self.frame = 0
+        if not self.frame:
+            self.frame = 2
+        else:
+            self.frame = self.frame % 8 + 1
+
+    def update_y(self, y):
+        if self.state == 'ground':
+            self.acceleration = 0
+        elif self.state == 'jump':
+            y -= self.acceleration
+            self.acceleration -= 1
+            if not self.acceleration:
+                self.state = 'fall'
+        elif self.state == 'fall':
+            y += self.acceleration
+            self.acceleration += 1
+        return y
+
+    def update_image(self):
+        self.image = load_image('f' + self.direction[0] + str(self.frame) + '.png', (163, 73, 164))
+
+
 def load_image(name, colorkey=None):
     fullname = os.path.join('data', name)
     # если файл не существует, то выходим
@@ -64,15 +116,18 @@ def render_line(x, y, line, odd, surface, front_group):
         front_group.add(sprite)
 
 
-def render(x, level, y, surface, front):
+def render(x, level, y, surface, front, frog_group):
     surface.fill((0, 0, 0))
     for i in range(11):
         if -len(tower) <= level + 7 - i < len(tower):
-            render_line(x, -y + i * BLOCK_H, tower[level + 7 - i], (level + 7 - i) % 2, surface, front)
+            render_line(x, -y + i * BLOCK_H, tower[level + 7 - i],
+                        (level + 7 - i) % 2, surface, front)
     front.draw(surface)
+    frog_group.draw(surface)
     font = pygame.font.Font('Nouveau_IBM.ttf', 36)
     text = font.render(str(level) + ' ' + str(y) + ' ' + str(x), True, (85, 160, 73))
     surface.blit(text, (0, 0))
+    return front
 
 
 pygame.init()
@@ -113,7 +168,14 @@ x = 0
 # 0 <= x < 360
 running = True
 clock = pygame.time.Clock()
+frog = Frog()
 while running:
+    front_blocks = pygame.sprite.Group()
+    frog_group = pygame.sprite.Group()
+    frog_group.add(frog)
+    front_blocks = render(x, level, y, screen, front_blocks, frog_group)
+    pygame.display.flip()
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -127,12 +189,16 @@ while running:
         level -= y // BLOCK_H
         y = y % BLOCK_H
     if keys[1073741904]:
+        frog.step_left()
+        frog.update_image()
         x -= 2.5
         x = x % 360
     if keys[1073741903]:
+        frog.step_right()
+        frog.update_image()
         x += 2.5
         x = x % 360
-    front_blocks = pygame.sprite.Group()
-    render(x, level, y, screen, front_blocks)
-    pygame.display.flip()
+    if not (keys[1073741904] or keys[1073741903]):
+        frog.frame = 0
+        frog.update_image()
     clock.tick(30)
