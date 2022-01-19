@@ -45,7 +45,7 @@ def render_line(x, y, line, odd, surface, front_group):
         sprite.rect.y = y
         group.add(sprite)
         group.draw(surface)
-    pygame.draw.rect(surface, (0, 0, 128), (X_AXIS - TOWER_R, y + 3, 2 * TOWER_R, BLOCK_H - 6))
+    pygame.draw.rect(surface, (64, 49, 141), (X_AXIS - TOWER_R, y + 3, 2 * TOWER_R, BLOCK_H - 6))
     for line_n in range(24):
         line_deg = math.radians((line_n * 15 - x + 7.5 * odd) % 360)
         if math.sin(line_deg) <= 0:
@@ -71,7 +71,7 @@ def render(x, level, y, surface, front):
             render_line(x, -y + i * BLOCK_H, tower[level + 7 - i], (level + 7 - i) % 2, surface, front)
     front.draw(surface)
     font = pygame.font.Font('Nouveau_IBM.ttf', 36)
-    text = font.render(str(level) + ' ' + str(y) + ' ' + str(x), True, (100, 255, 100))
+    text = font.render(str(level) + ' ' + str(y) + ' ' + str(x), True, (85, 160, 73))
     surface.blit(text, (0, 0))
 
 
