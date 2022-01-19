@@ -11,10 +11,12 @@ def load_image(name, colorkey=None):
         print(f"Файл с изображением '{fullname}' не найден")
         sys.exit()
     image = pygame.image.load(fullname)
+    if colorkey is not None:
+        image.set_colorkey(colorkey)
     return image
 
 
-def render_line(x, y, line, odd, surface):
+def render_line(x, y, line, odd, surface, front_group):
     front = []
     back = []
     for i in range(16):
@@ -37,7 +39,7 @@ def render_line(x, y, line, odd, surface):
         if i[1] == 1:
             sprite.image = load_image('block.png')
         else:
-            sprite.image = load_image('coin.png')
+            sprite.image = load_image('coin.png', (163, 73, 164))
         sprite.rect = sprite.image.get_rect()
         sprite.rect.x = (TOWER_R + BLOCK_R) * math.cos(i[0]) + X_AXIS - BLOCK_R
         sprite.rect.y = y
@@ -50,29 +52,28 @@ def render_line(x, y, line, odd, surface):
             cos = X_AXIS + TOWER_R * math.cos(line_deg)
             pygame.draw.line(surface, (0, 0, 0), (cos, y), (cos, y + BLOCK_H), 6)
     front.sort(key=lambda x: (-math.sin(x[0]), math.cos(x[0])))
-    group = pygame.sprite.Group()
     for i in front:
         sprite = pygame.sprite.Sprite()
         if i[1] == 1:
             sprite.image = load_image('block.png')
         else:
-            sprite.image = load_image('coin.png')
+            sprite.image = load_image('coin.png', (163, 73, 164))
         sprite.rect = sprite.image.get_rect()
         sprite.rect.x = (TOWER_R + BLOCK_R) * math.cos(i[0]) + X_AXIS - BLOCK_R
         sprite.rect.y = y
-        group.add(sprite)
-        group.draw(surface)
+        front_group.add(sprite)
 
 
-
-
-def render(x, level, y, surface):
+def render(x, level, y, surface, front):
     surface.fill((0, 0, 0))
     for i in range(11):
-        render_line(x, -y + i * BLOCK_H, tower[level + 7 - i], (level + 7 - i) % 2, surface)
+        if -len(tower) <= level + 7 - i < len(tower):
+            render_line(x, -y + i * BLOCK_H, tower[level + 7 - i], (level + 7 - i) % 2, surface, front)
+    front.draw(surface)
     font = pygame.font.Font('Nouveau_IBM.ttf', 36)
     text = font.render(str(level) + ' ' + str(y) + ' ' + str(x), True, (100, 255, 100))
     surface.blit(text, (0, 0))
+
 
 pygame.init()
 size = 900, 600
@@ -89,7 +90,7 @@ tower = [
     ' #              ',
     '  #             ',
     '########        ',
-    '                ',
+    '   00           ',
     '   ###          ',
     '   # #          ',
     '   # #          ',
@@ -116,27 +117,22 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        if event.type == pygame.KEYDOWN:
-            if event.key == 1073741906:
-                y -= 5
-                if y >= BLOCK_H:
-                    print(level + 1)
-                level -= y // BLOCK_H
-                y = y % BLOCK_H
-            if event.key == 1073741905:
-                y += 5
-                if y >= BLOCK_H:
-                    print(level + 1)
-                level -= y // BLOCK_H
-                y = y % BLOCK_H
-            if event.key == 1073741904:
-                x -= 2.5
-                x = x % 360
-            if event.key == 1073741903:
-                x += 2.5
-                x = x % 360
-    x += 2.5
-    x = x % 360
-    render(x, level, y, screen)
+    keys = pygame.key.get_pressed()
+    if keys[1073741906]:
+        y -= 5
+        level -= y // BLOCK_H
+        y = y % BLOCK_H
+    if keys[1073741905]:
+        y += 5
+        level -= y // BLOCK_H
+        y = y % BLOCK_H
+    if keys[1073741904]:
+        x -= 2.5
+        x = x % 360
+    if keys[1073741903]:
+        x += 2.5
+        x = x % 360
+    front_blocks = pygame.sprite.Group()
+    render(x, level, y, screen, front_blocks)
     pygame.display.flip()
     clock.tick(30)
