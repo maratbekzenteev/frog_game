@@ -12,32 +12,35 @@ class Frog(pygame.sprite.Sprite):
         # ground - when not moving vertically
         # fall - when falling, jump - when jumping
 
-        self.direction = 'right'
+        self.direction = 8
+        # 0 - fully left, 8 - fully right
         self.frame = 0
-        self.image = load_image('fr0.png', (163, 73, 164))
+        self.image = load_image('f80.png', (163, 73, 164))
         # frog sprite names:
-        # 'f' for 'frog', 'l' or 'r' - direction, '0' to '8' - frame num
+        # 'f' for 'frog', '0' to '8' - direction, '0' to '8' - frame num
         self.rect = self.image.get_rect()
         self.rect.x = X_AXIS - BLOCK_R
         self.rect.y = 6 * BLOCK_H
 
     def step_left(self):
-        if self.direction == 'right':
-            self.direction = 'left'
+        if self.direction != 0:
             self.frame = 0
-        if not self.frame:
-            self.frame = 2
+            self.direction -= 1
         else:
-            self.frame = self.frame % 8 + 1
+            if not self.frame:
+                self.frame = 2
+            else:
+                self.frame = self.frame % 8 + 1
 
     def step_right(self):
-        if self.direction == 'left':
-            self.direction = 'right'
+        if self.direction != 8:
             self.frame = 0
-        if not self.frame:
-            self.frame = 2
+            self.direction += 1
         else:
-            self.frame = self.frame % 8 + 1
+            if not self.frame:
+                self.frame = 2
+            else:
+                self.frame = self.frame % 8 + 1
 
     def update_y(self, y):
         if self.state == 'ground':
@@ -53,7 +56,7 @@ class Frog(pygame.sprite.Sprite):
         return y
 
     def update_image(self):
-        self.image = load_image('f' + self.direction[0] + str(self.frame) + '.png', (163, 73, 164))
+        self.image = load_image('f' + str(self.direction) + str(self.frame) + '.png', (163, 73, 164))
 
 
 def load_image(name, colorkey=None):
