@@ -233,14 +233,16 @@ while running:
         if event.type == pygame.QUIT:
             running = False
     keys = pygame.key.get_pressed()
-    # if keys[1073741906]:
-    #     y -= 5
-    #     level -= y // BLOCK_H
-    #     y = y % BLOCK_H
-    # if keys[1073741905]:
-    #     y += 5
-    #     level -= y // BLOCK_H
-    #     y = y % BLOCK_H
+    if keys[1073741899]:
+        frog.acceleration = 0
+        y -= 60
+        level -= y // BLOCK_H
+        y = y % BLOCK_H
+    if keys[1073741902]:
+        frog.acceleration = 0
+        y += 60
+        level -= y // BLOCK_H
+        y = y % BLOCK_H
     if keys[32] and frog.state == 'ground' and down_collide:
         frog.state = 'jump'
         frog.acceleration = 15
