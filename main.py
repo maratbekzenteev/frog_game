@@ -89,10 +89,10 @@ class Frog(pygame.sprite.Sprite):
                             right = True
                     else:
                         if self.rect.y > block.rect.y and \
-                                abs(self.rect.x - block.rect.x) < BLOCK_R:
+                                abs(self.rect.x - block.rect.x) < 1.5 * BLOCK_R:
                             up = True
                         elif self.rect.y < block.rect.y and \
-                                abs(self.rect.x - block.rect.x) < BLOCK_R:
+                                abs(self.rect.x - block.rect.x) < 1.5 * BLOCK_R:
                             down = True
                 elif type(block) == Coin:
                     collected_coins.append([block.x, block.level])
@@ -164,6 +164,8 @@ def render_line(x, y, line, odd, surface, front_group, cur_level):
 
 def render(x, level, y, surface, front, frog_group, coins):
     surface.fill((0, 255, 0))
+    surface.blit(BACKGROUND, (int(x * BG_TO_TOWER_RATIO), 0))
+    surface.blit(BACKGROUND, (int(x * BG_TO_TOWER_RATIO) - 900, 0))
     for i in range(11):
         if 0 <= level + 7 - i < len(tower):
             render_line(x, -y + i * BLOCK_H, tower[level + 7 - i],
@@ -186,11 +188,13 @@ screen = pygame.display.set_mode(size)
 pygame.display.set_caption('frog_game')
 
 
-X_AXIS = 450
+X_AXIS = 600  # 450
 BLOCK_R = 36
 BLOCK_H = 60
 COIN_R = 21
 TOWER_R = 144
+BACKGROUND = load_image('bg.png')
+BG_TO_TOWER_RATIO = 900 / 360
 tower = [
     '    #           ',
     '     #          ',
