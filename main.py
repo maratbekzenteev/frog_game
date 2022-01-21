@@ -175,8 +175,8 @@ def render(x, level, y, surface, front, frog_group, coins):
                         (level + 7 - i) % 2, surface, front, level + 7 - i)
     front.draw(surface)
     frog_group.draw(surface)
-    font = pygame.font.Font('Nouveau_IBM.ttf', 36)
-    text = font.render(str(level) + ' ' + str(y) + ' ' + str(x) + ' ' + str(coins),
+
+    text = FONT.render(str(level) + ' ' + str(y) + ' ' + str(x) + ' ' + str(coins),
                        True, (85, 160, 73))
     surface.blit(text, (0, 0))
     return front
@@ -195,6 +195,60 @@ COIN_R = 21
 TOWER_R = 144
 BACKGROUND = load_image('bg.png')
 BG_TO_TOWER_RATIO = 900 / 360
+FONT = pygame.font.Font('Nouveau_IBM.ttf', 36)
+WORLDS = open('worlds.txt')
+NUM_TO_CHR = {
+    0: ' ',
+    1: '#',
+    2: '0',
+    3: 'v'
+}
+
+running = True
+title = load_image('title.png')
+screen.blit(title, (0, 0))
+pygame.display.flip()
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            sys.exit(0)
+        if event.type == pygame.KEYDOWN:
+            running = False
+world_num = 0
+running = True
+while running:
+    world_complete = False
+    header = WORLDS.readline().rstrip()
+    if header == '':
+        world_complete = True
+        running = False
+    else:
+        world = []
+        n, coins_all = [int(i) for i in header.split()]
+        for i in range(len(n)):
+            cur_num = int(WORLDS.readline())
+            line = ''
+            while cur_num:
+                line += NUM_TO_CHR[cur_num % 4]
+                cur_num = cur_num // 4
+            line += ' ' * (16 - len(line))
+            world.append(line)
+
+    while running and not world_complete:
+        screen.fill((0, 0, 0))
+        text = FONT.render('World ' + str(world_num + 1), False, (85, 160, 73))
+        screen.blit(text, (0, 0))
+        text = FONT.render('Press any key to start', False, (85, 160, 73))
+        screen.blit(text, (0, 60))
+        pygame.display.flip()
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    sys.exit(0)
+                if event.type == pygame.KEYDOWN:
+                    running = False
+        running = True
+
 tower = [
     '    #           ',
     '     #          ',
@@ -230,7 +284,6 @@ y = 15
 x = 0
 # 0 <= x < 360
 coin_count = 0
-running = True
 clock = pygame.time.Clock()
 frog = Frog()
 while running:
@@ -258,7 +311,7 @@ while running:
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            running = False
+            sys.exit(0)
     keys = pygame.key.get_pressed()
     if keys[1073741899]:
         frog.acceleration = 0
