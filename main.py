@@ -141,6 +141,7 @@ def render_line(x, y, line, odd, surface, front_group, cur_level):
         sprite.rect.y = y - 1
         group.add(sprite)
     group.draw(surface)
+    pygame.draw.rect(surface, (0, 0, 0), (X_AXIS - TOWER_R, y, 2 * TOWER_R, BLOCK_H))
     pygame.draw.rect(surface, (64, 49, 141), (X_AXIS - TOWER_R, y + 3, 2 * TOWER_R, BLOCK_H - 6))
     for line_n in range(24):
         line_deg = math.radians((line_n * 15 - x + 7.5 * odd) % 360)
@@ -162,10 +163,13 @@ def render_line(x, y, line, odd, surface, front_group, cur_level):
 
 
 def render(x, level, y, surface, front, frog_group, coins):
-    surface.fill((0, 0, 0))
+    surface.fill((0, 255, 0))
     for i in range(11):
-        if -len(tower) <= level + 7 - i < len(tower):
+        if 0 <= level + 7 - i < len(tower):
             render_line(x, -y + i * BLOCK_H, tower[level + 7 - i],
+                        (level + 7 - i) % 2, surface, front, level + 7 - i)
+        elif level + 7 - i < 0:
+            render_line(x, -y + i * BLOCK_H, ' ' * 16,
                         (level + 7 - i) % 2, surface, front, level + 7 - i)
     front.draw(surface)
     frog_group.draw(surface)
@@ -188,23 +192,30 @@ BLOCK_H = 60
 COIN_R = 21
 TOWER_R = 144
 tower = [
+    '    #           ',
+    '     #          ',
+    '##    #   # # ##',
+    ' 0       #      ',
+    '#####   #      #',
+    '       #        ',
+    '      #         ',
+    '##  ##      ##  ',
+    '                ',
+    '         ##     ',
+    '                ',
+    '  ##  ##    ##  ',
+    '   0          # ',
+    '               #',
     '#               ',
-    ' #      ####    ',
+    ' #              ',
+    '  #     #       ',
+    '     #     #    ',
+    '              # ',
+    '        #       ',
+    '        0      #',
+    '                ',
     '  #             ',
-    '########   #####',
-    '   00           ',
-    '   ###          ',
-    '   # #          ',
-    '   # #          ',
-    '   ###          ',
-    '                ',
     '     #          ',
-    '     #          ',
-    '     #          ',
-    '    ##          ',
-    '                ',
-    '                ',
-    '                ',
     '                '
 ]
 tower = [list(i) for i in tower]
@@ -238,6 +249,8 @@ while running:
         frog.acceleration = 0
     if frog.state == 'ground' and not down_collide:
         frog.state = 'fall'
+    if down_collide and y:
+        y = 0
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
