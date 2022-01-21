@@ -7,7 +7,7 @@ import os
 class Block(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.image = load_image('block.png', (163, 73, 164))
+        self.image = load_image('block.png', BGCOLOR)
 
 
 class Coin(pygame.sprite.Sprite):
@@ -15,7 +15,7 @@ class Coin(pygame.sprite.Sprite):
         super(Coin, self).__init__()
         self.x = x
         self.level = level
-        self.image = load_image('coin.png', (163, 73, 164))
+        self.image = load_image('coin.png', BGCOLOR)
 
 
 class Frog(pygame.sprite.Sprite):
@@ -29,7 +29,7 @@ class Frog(pygame.sprite.Sprite):
         self.direction = 8
         # 0 - fully left, 8 - fully right
         self.frame = 0
-        self.image = load_image('f80.png', (163, 73, 164))
+        self.image = load_image('f80.png', BGCOLOR)
         # frog sprite names:
         # 'f' for 'frog', '0' to '8' - direction, '0' to '8' - frame num
         self.rect = self.image.get_rect()
@@ -70,7 +70,7 @@ class Frog(pygame.sprite.Sprite):
         return y
 
     def update_image(self):
-        self.image = load_image('f' + str(self.direction) + str(self.frame) + '.png', (163, 73, 164))
+        self.image = load_image('f' + str(self.direction) + str(self.frame) + '.png', BGCOLOR)
 
     def check_collisions(self, blocks):
         down = False
@@ -162,6 +162,17 @@ def render_line(x, y, line, odd, surface, front_group, cur_level):
         front_group.add(sprite)
 
 
+def render_finish(y, surface):
+    finish_group = pygame.sprite.Group()
+    finish = pygame.sprite.Sprite()
+    finish.image = load_image('finish.png', BGCOLOR)
+    finish.rect = finish.image.get_rect()
+    finish.rect.x = X_AXIS - BLOCK_R
+    finish.rect.y = y
+    finish_group.add(finish)
+    finish_group.draw(surface)
+
+
 def render(x, level, y, surface, front, frog_group, coins):
     surface.fill((0, 255, 0))
     surface.blit(BACKGROUND, (int(x * BG_TO_TOWER_RATIO), 0))
@@ -173,6 +184,8 @@ def render(x, level, y, surface, front, frog_group, coins):
         elif level + 7 - i < 0:
             render_line(x, -y + i * BLOCK_H, ' ' * 16,
                         (level + 7 - i) % 2, surface, front, level + 7 - i)
+        elif level + 7 - i == len(tower):
+            render_finish(-y + (i - 1) * BLOCK_H, surface)
     front.draw(surface)
     frog_group.draw(surface)
 
@@ -195,6 +208,7 @@ COIN_R = 21
 TOWER_R = 144
 BACKGROUND = load_image('bg.png')
 BG_TO_TOWER_RATIO = 900 / 360
+BGCOLOR = (163, 73, 164)
 FONT = pygame.font.Font('Nouveau_IBM.ttf', 36)
 WORLDS = open('worlds.txt')
 NUM_TO_CHR = {
@@ -225,7 +239,7 @@ while running:
     else:
         world = []
         n, coins_all = [int(i) for i in header.split()]
-        for i in range(len(n)):
+        for i in range(n):
             cur_num = int(WORLDS.readline())
             line = ''
             while cur_num:
@@ -248,101 +262,76 @@ while running:
                 if event.type == pygame.KEYDOWN:
                     running = False
         running = True
+        tower = [list(i) for i in world]
 
-tower = [
-    '    #           ',
-    '     #          ',
-    '##    #   # # ##',
-    ' 0       #      ',
-    '#####   #      #',
-    '       #        ',
-    '      #         ',
-    '##  ##      ##  ',
-    '                ',
-    '         ##     ',
-    '                ',
-    '  ##  ##    ##  ',
-    '   0          # ',
-    '               #',
-    '#               ',
-    ' #              ',
-    '  #     #       ',
-    '     #     #    ',
-    '              # ',
-    '        #       ',
-    '        0      #',
-    '                ',
-    '  #             ',
-    '     #          ',
-    '                '
-]
-tower = [list(i) for i in tower]
+        level = 3
+        y = 15
+        # 0 <= y < 120
+        x = 0
+        # 0 <= x < 360
+        coin_count = 0
+        clock = pygame.time.Clock()
+        frog = Frog()
+        while running:
+            front_blocks = pygame.sprite.Group()
+            frog_group = pygame.sprite.Group()
+            frog_group.add(frog)
+            front_blocks = render(x, level, y, screen, front_blocks, frog_group, coin_count)
+            pygame.display.flip()
 
-level = 3
-y = 15
-# 0 <= y < 120
-x = 0
-# 0 <= x < 360
-coin_count = 0
-clock = pygame.time.Clock()
-frog = Frog()
-while running:
-    front_blocks = pygame.sprite.Group()
-    frog_group = pygame.sprite.Group()
-    frog_group.add(frog)
-    front_blocks = render(x, level, y, screen, front_blocks, frog_group, coin_count)
-    pygame.display.flip()
+            down_collide, up_collide, left_collide, right_collide, collected_coins \
+                = frog.check_collisions(front_blocks)
+            coin_count += len(collected_coins)
+            for coin_x, coin_level in collected_coins:
+                tower[coin_level][coin_x] = ' '
+            if up_collide and frog.state == 'jump':
+                frog.state = 'fall'
+                frog.acceleration = 0
+            if down_collide and frog.state == 'fall':
+                frog.state = 'ground'
+                frog.acceleration = 0
+            if frog.state == 'ground' and not down_collide:
+                frog.state = 'fall'
+            if down_collide and y:
+                y = 0
 
-    down_collide, up_collide, left_collide, right_collide, collected_coins\
-        = frog.check_collisions(front_blocks)
-    coin_count += len(collected_coins)
-    for coin_x, coin_level in collected_coins:
-        tower[coin_level][coin_x] = ' '
-    if up_collide and frog.state == 'jump':
-        frog.state = 'fall'
-        frog.acceleration = 0
-    if down_collide and frog.state == 'fall':
-        frog.state = 'ground'
-        frog.acceleration = 0
-    if frog.state == 'ground' and not down_collide:
-        frog.state = 'fall'
-    if down_collide and y:
-        y = 0
-
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            sys.exit(0)
-    keys = pygame.key.get_pressed()
-    if keys[1073741899]:
-        frog.acceleration = 0
-        y -= 60
-        level -= y // BLOCK_H
-        y = y % BLOCK_H
-    if keys[1073741902]:
-        frog.acceleration = 0
-        y += 60
-        level -= y // BLOCK_H
-        y = y % BLOCK_H
-    if keys[32] and frog.state == 'ground' and down_collide:
-        frog.state = 'jump'
-        frog.acceleration = 15
-    if keys[1073741904] and not left_collide:
-        frog.step_left()
-        frog.update_image()
-        x -= 2.5
-        x = x % 360
-    if keys[1073741903] and not right_collide:
-        frog.step_right()
-        frog.update_image()
-        x += 2.5
-        x = x % 360
-    if not (keys[1073741904] or keys[1073741903]) or \
-        keys[1073741903] and right_collide or keys[1073741904] and left_collide:
-        frog.frame = 0
-        frog.update_image()
-    y = frog.update_y(y)
-    level -= y // BLOCK_H
-    y = y % BLOCK_H
-    if frog.state == 'ground' and y:
-        y = 0
-    clock.tick(30)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    sys.exit(0)
+            keys = pygame.key.get_pressed()
+            if keys[1073741899]:
+                frog.acceleration = 0
+                y -= 60
+                level -= y // BLOCK_H
+                y = y % BLOCK_H
+            if keys[1073741902]:
+                frog.acceleration = 0
+                y += 60
+                level -= y // BLOCK_H
+                y = y % BLOCK_H
+            if keys[32] and frog.state == 'ground' and down_collide:
+                frog.state = 'jump'
+                frog.acceleration = 15
+            if keys[1073741904] and not left_collide:
+                frog.step_left()
+                frog.update_image()
+                x -= 2.5
+                x = x % 360
+            if keys[1073741903] and not right_collide:
+                frog.step_right()
+                frog.update_image()
+                x += 2.5
+                x = x % 360
+            if not (keys[1073741904] or keys[1073741903]) or \
+                    keys[1073741903] and right_collide or keys[1073741904] and left_collide:
+                frog.frame = 0
+                frog.update_image()
+            if level < 0:
+                running = False
+            y = frog.update_y(y)
+            level -= y // BLOCK_H
+            y = y % BLOCK_H
+            if frog.state == 'ground' and y:
+                y = 0
+            clock.tick(30)
+        running = True
