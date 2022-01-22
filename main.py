@@ -264,6 +264,7 @@ while running:
     if header == '':
         break
     else:
+        world_num += 1
         world = []
         n, coins_all = [int(i) for i in header.split()]
         for i in range(n):
@@ -277,7 +278,7 @@ while running:
 
     while running and not world_complete:
         screen.fill((0, 0, 0))
-        text = FONT.render('World ' + str(world_num + 1), False, (85, 160, 73))
+        text = FONT.render('World ' + str(world_num), False, (85, 160, 73))
         screen.blit(text, (0, 0))
         text = FONT.render('Press any key to start', False, (85, 160, 73))
         screen.blit(text, (0, 60))
@@ -399,3 +400,5 @@ while running:
         running = True
         if level > 0:
             level_complete = True
+            running = False
+    running = True
