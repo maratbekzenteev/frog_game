@@ -357,11 +357,11 @@ while running:
                     keys[1073741903] and right_collide or keys[1073741904] and left_collide:
                 frog.frame = 0
                 frog.update_image()
-            if level == -12:
+            if frog.state == 'fall' and level == -12:
                 frog.state = 'dead'
-            if frog.rect.y > size[1]:
+            elif frog.state == 'dead' and frog.rect.y > size[1]:
                 break
-            if level == len(tower) and coin_count == coins_all:
+            elif frog.state == 'jump' and level == len(tower) and coin_count == coins_all:
                 break
             y = frog.update_y(y)
             level -= y // BLOCK_H
