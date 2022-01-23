@@ -292,7 +292,7 @@ while running:
         running = True
         tower = [list(i) for i in world]
 
-        level = 3
+        level = 1
         y = 15
         # 0 <= y < 120
         x = 0
