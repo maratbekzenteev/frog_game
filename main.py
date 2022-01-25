@@ -285,6 +285,7 @@ running = True
 while running:
     world_complete = False
     header = WORLDS.readline().rstrip()
+
     # loading the world:
     if header == '':
         break
@@ -362,6 +363,7 @@ while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     sys.exit(0)
+
             # keys pressed check
             keys = pygame.key.get_pressed()
             if keys[1073741899]:
