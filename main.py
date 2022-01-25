@@ -4,12 +4,14 @@ import math
 import os
 
 
+# class for blocks. Has no differences from a regular sprite
 class Block(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.image = load_image('block.png', BGCOLOR)
 
 
+# class for coins. Has 2 variables, that help with deleting collected coins from the tower map
 class Coin(pygame.sprite.Sprite):
     def __init__(self, x, level):
         super(Coin, self).__init__()
@@ -18,12 +20,14 @@ class Coin(pygame.sprite.Sprite):
         self.image = load_image('coin.png', BGCOLOR)
 
 
+# class for froggy. Has variables like 'state' and 'acceleration',
+# which are useful when defining frog's movement
 class Frog(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.acceleration = 0
         self.state = 'ground'
-        # ground - when not moving vertically
+        # states: ground - when not moving vertically
         # fall - when falling, jump - when jumping, dead - when below the level
 
         self.direction = 8
@@ -36,6 +40,7 @@ class Frog(pygame.sprite.Sprite):
         self.rect.x = X_AXIS - BLOCK_R
         self.rect.y = 6 * BLOCK_H
 
+    # changes the frame of the frog's sprite
     def step_left(self):
         if self.direction != 0:
             self.frame = 0
@@ -46,6 +51,7 @@ class Frog(pygame.sprite.Sprite):
             else:
                 self.frame = self.frame % 8 + 1
 
+    # changes the frame of the frog's sprite
     def step_right(self):
         if self.direction != 8:
             self.frame = 0
@@ -56,6 +62,7 @@ class Frog(pygame.sprite.Sprite):
             else:
                 self.frame = self.frame % 8 + 1
 
+    # alters the tower's position and returns it, depending on the state of the frog
     def update_y(self, y):
         if self.state == 'ground':
             self.acceleration = 0
@@ -73,9 +80,12 @@ class Frog(pygame.sprite.Sprite):
 
         return y
 
+    # updates the frog's sprite (is called after any kind of horisontal movement)
     def update_image(self):
         self.image = load_image('f' + str(self.direction) + str(self.frame) + '.png', BGCOLOR)
 
+    # checks collisions with blocks on each side, also returns a list of collected coins
+    # (a coin is considered collected if it collides with the frog on any of the sides)
     def check_collisions(self, blocks):
         down = False
         up = False
@@ -85,6 +95,7 @@ class Frog(pygame.sprite.Sprite):
         collected_coins = []
         if collisions:
             for block in collisions:
+                # check collisions for each of the blocks that touch the frog
                 if type(block) == Block:
                     if abs(self.rect.y - block.rect.y) <= BLOCK_H / 2:
                         if self.rect.x > block.rect.x:
@@ -103,11 +114,12 @@ class Frog(pygame.sprite.Sprite):
         return down, up, left, right, collected_coins
 
 
+# a function that simplifies the process of loading images for sprites and blittable surfaces
 def load_image(name, colorkey=None):
     fullname = os.path.join('data', name)
-    # если файл не существует, то выходим
+    # exit if the file is non-existent
     if not os.path.isfile(fullname):
-        print(f"Файл с изображением '{fullname}' не найден")
+        print(f"File '{fullname}' not found")
         sys.exit()
     image = pygame.image.load(fullname)
     if colorkey is not None:
@@ -115,10 +127,12 @@ def load_image(name, colorkey=None):
     return image
 
 
+# renders a single line, using math functions for calculating a block's horizontal position
 def render_line(x, y, line, odd, surface, front_group, cur_level):
     front = []
     back = []
     for i in range(16):
+        # 1 is for blocks, 2 is for coins
         if line[i] == '#':
             block_deg = math.radians((i * 22.5 - x) % 360)
             if math.sin(block_deg) <= 0:
@@ -131,6 +145,8 @@ def render_line(x, y, line, odd, surface, front_group, cur_level):
                 front.append((coin_deg, 2, i))
             else:
                 back.append((coin_deg, 2, i))
+    # the further the block is, the earlier it is render,
+    # so the nearest blocks are always rendered on top of others
     back.sort(key=lambda x: (-math.sin(x[0]), math.cos(x[0])))
     group = pygame.sprite.Group()
     for i in back:
@@ -166,6 +182,7 @@ def render_line(x, y, line, odd, surface, front_group, cur_level):
         front_group.add(sprite)
 
 
+# a render function for the finish sign
 def render_finish(y, surface):
     finish_group = pygame.sprite.Group()
     finish = pygame.sprite.Sprite()
@@ -177,6 +194,7 @@ def render_finish(y, surface):
     finish_group.draw(surface)
 
 
+# a function that renders 1 frame of gameplay
 def render(x, level, y, surface, front, frog_group, coins, time, coins_all):
     surface.fill((0, 255, 0))
     surface.blit(BACKGROUND, (int(x * BG_TO_TOWER_RATIO), 0))
@@ -215,12 +233,13 @@ def render(x, level, y, surface, front, frog_group, coins, time, coins_all):
     return front
 
 
+# initialisation:
 pygame.init()
 size = 900, 600
 screen = pygame.display.set_mode(size)
 pygame.display.set_caption('Froggy')
 
-
+# constants:
 X_AXIS = 600  # 450
 BLOCK_R = 36
 BLOCK_H = 60
@@ -242,6 +261,11 @@ clock = pygame.time.Clock()
 running = True
 screen_acceleration = 0
 y = -size[1]
+record_read = open('records.txt', 'r')
+records = [int(i) for i in record_read.readline().split()]
+record_read.close()
+
+# title screen
 while y < 0:
     # pygame.draw.rect(screen, (0, 0, 0), (0, 0, size[0], -y))
     screen.blit(load_image('title.png'), (0, y))
@@ -261,6 +285,7 @@ running = True
 while running:
     world_complete = False
     header = WORLDS.readline().rstrip()
+    # loading the world:
     if header == '':
         break
     else:
@@ -276,11 +301,14 @@ while running:
             line += ' ' * (16 - len(line))
             world.append(line)
 
+    # pre-gameplay world screen:
     while running and not world_complete:
         screen.fill((0, 0, 0))
-        text = FONT.render('World ' + str(world_num), False, (85, 160, 73))
+        text = FONT.render('World ' + str(world_num), False, (255, 255, 255))
         screen.blit(text, (0, 0))
-        text = FONT.render('Press any key to start', False, (85, 160, 73))
+        text = FONT.render('Best time: ' + str(records[world_num - 1]), False, (255, 255, 255))
+        screen.blit(text, (0, 30))
+        text = FONT.render('Press any key to start', False, (255, 255, 255))
         screen.blit(text, (0, 60))
         pygame.display.flip()
         while running:
@@ -292,7 +320,8 @@ while running:
         running = True
         tower = [list(i) for i in world]
 
-        level = 1
+        # pre-gameplay variables initialisation
+        level = 3
         y = 15
         # 0 <= y < 120
         x = 0
@@ -300,8 +329,9 @@ while running:
         coin_count = 0
         frames = 0
         seconds = 0
-
         frog = Frog()
+
+        # gameplay:
         while running:
             front_blocks = pygame.sprite.Group()
             frog_group = pygame.sprite.Group()
@@ -313,8 +343,11 @@ while running:
             down_collide, up_collide, left_collide, right_collide, collected_coins \
                 = frog.check_collisions(front_blocks)
             coin_count += len(collected_coins)
+            # removing all the collected coins from the current map
             for coin_x, coin_level in collected_coins:
                 tower[coin_level][coin_x] = ' '
+
+            # changing the state of the frog if it is incorrect
             if up_collide and frog.state == 'jump':
                 frog.state = 'fall'
                 frog.acceleration = 0
@@ -329,6 +362,7 @@ while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     sys.exit(0)
+            # keys pressed check
             keys = pygame.key.get_pressed()
             if keys[1073741899]:
                 frog.acceleration = 0
@@ -357,11 +391,13 @@ while running:
                     keys[1073741903] and right_collide or keys[1073741904] and left_collide:
                 frog.frame = 0
                 frog.update_image()
-            if frog.state == 'fall' and level == -12:
+
+            # level complete / death check:
+            if level == -12:
                 frog.state = 'dead'
-            elif frog.state == 'dead' and frog.rect.y > size[1]:
+            if frog.rect.y > size[1]:
                 break
-            elif frog.state == 'jump' and level == len(tower) and coin_count == coins_all:
+            if level == len(tower) and coin_count == coins_all:
                 break
             y = frog.update_y(y)
             level -= y // BLOCK_H
@@ -374,6 +410,8 @@ while running:
             clock.tick(30)
         screen_acceleration = 0
         y = -size[1]
+
+        # post-gameplay screens:
         if level < 0:
             while y < 0:
                 # pygame.draw.rect(screen, (0, 0, 0), (0, 0, size[0], -y))
@@ -390,6 +428,19 @@ while running:
                 screen_acceleration += 1
                 y += screen_acceleration
                 clock.tick(30)
+            if seconds < records[world_num - 1]:
+                records[world_num - 1] = seconds
+                running = True
+                while running:
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            sys.exit(0)
+                        if event.type == pygame.KEYDOWN:
+                            running = False
+                screen.fill((0, 0, 0))
+                text = FONT.render('New best time: ' + str(seconds) + ' seconds!', False, (255, 255, 255))
+                screen.blit(text, (0, 0))
+                pygame.display.flip()
         running = True
         while running:
             for event in pygame.event.get():
@@ -402,3 +453,26 @@ while running:
             level_complete = True
             running = False
     running = True
+
+# updating the records
+record_write = open('records.txt', 'w', encoding='utf-8')
+record_write.write(' '.join([str(i) for i in records]))
+record_write.close()
+
+# ending screen:
+screen_acceleration = 0
+y = -size[1]
+while y < 0:
+    # pygame.draw.rect(screen, (0, 0, 0), (0, 0, size[0], -y))
+    screen.blit(load_image('end.png'), (0, y))
+    pygame.display.flip()
+    screen_acceleration += 1
+    y += screen_acceleration
+    clock.tick(30)
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            sys.exit(0)
+        if event.type == pygame.KEYDOWN:
+            running = False
