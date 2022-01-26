@@ -128,24 +128,36 @@ def load_image(name, colorkey=None):
 
 
 # renders a single line, using math functions for calculating a block's horizontal position
-def render_line(x, y, line, odd, surface, front_group, cur_level):
-    front = []
+def render_line(x, y, line, odd, surface, front_group_touchable,
+                front_group_untouchable, cur_level, frog_level):
+    front_touchable = []
+    front_untouchable = []
     back = []
     for i in range(16):
         # 1 is for blocks, 2 is for coins
         if line[i] == '#':
-            block_deg = math.radians((i * 22.5 - x) % 360)
-            if math.sin(block_deg) <= 0:
-                front.append((block_deg, 1))
+            block_deg = (i * 22.5 - x) % 360
+            block_rad = math.radians(block_deg)
+            if math.sin(block_rad) <= 0:
+                if abs(frog_level - cur_level) <= 2 and 240 < block_deg < 310:
+                    front_touchable.append((block_rad, 1))
+                else:
+                    front_untouchable.append((block_rad, 1))
             else:
-                back.append((block_deg, 1))
+                if not (45 < block_deg < 135):
+                    back.append((block_rad, 1))
         elif line[i] == '0':
-            coin_deg = math.radians((i * 22.5 - x) % 360)
-            if math.sin(coin_deg) <= 0:
-                front.append((coin_deg, 2, i))
+            coin_deg = (i * 22.5 - x) % 360
+            coin_rad = math.radians(coin_deg)
+            if math.sin(coin_rad) <= 0:
+                if abs(frog_level - cur_level) <= 2 and 240 < coin_deg < 310:
+                    front_touchable.append((coin_rad, 2, i))
+                else:
+                    front_untouchable.append((coin_rad, 2, i))
             else:
-                back.append((coin_deg, 2, i))
-    # the further the block is, the earlier it is render,
+                if not (45 < coin_deg < 135):
+                    back.append((coin_rad, 2, i))
+    # the further the block is, the earlier it is rendered,
     # so the nearest blocks are always rendered on top of others
     back.sort(key=lambda x: (-math.sin(x[0]), math.cos(x[0])))
     group = pygame.sprite.Group()
@@ -168,8 +180,9 @@ def render_line(x, y, line, odd, surface, front_group, cur_level):
         if math.sin(line_deg) <= 0:
             cos = X_AXIS + TOWER_R * math.cos(line_deg)
             pygame.draw.line(surface, (0, 0, 0), (cos, y), (cos, y + BLOCK_H), 6)
-    front.sort(key=lambda x: (-math.sin(x[0]), math.cos(x[0])))
-    for i in front:
+    front_touchable.sort(key=lambda x: (-math.sin(x[0]), math.cos(x[0])))
+    front_untouchable.sort(key=lambda x: (-math.sin(x[0]), math.cos(x[0])))
+    for i in front_touchable:
         if i[1] == 1:
             sprite = Block()
             sprite.rect = sprite.image.get_rect()
@@ -179,7 +192,18 @@ def render_line(x, y, line, odd, surface, front_group, cur_level):
             sprite.rect = sprite.image.get_rect()
             sprite.rect.x = (TOWER_R + BLOCK_R) * math.cos(i[0]) + X_AXIS - COIN_R
         sprite.rect.y = y - 1
-        front_group.add(sprite)
+        front_group_touchable.add(sprite)
+    for i in front_untouchable:
+        if i[1] == 1:
+            sprite = Block()
+            sprite.rect = sprite.image.get_rect()
+            sprite.rect.x = (TOWER_R + BLOCK_R) * math.cos(i[0]) + X_AXIS - BLOCK_R
+        else:
+            sprite = Coin(i[2], cur_level)
+            sprite.rect = sprite.image.get_rect()
+            sprite.rect.x = (TOWER_R + BLOCK_R) * math.cos(i[0]) + X_AXIS - COIN_R
+        sprite.rect.y = y - 1
+        front_group_untouchable.add(sprite)
 
 
 # a render function for the finish sign
@@ -195,20 +219,21 @@ def render_finish(y, surface):
 
 
 # a function that renders 1 frame of gameplay
-def render(x, level, y, surface, front, frog_group, coins, time, coins_all):
+def render(x, level, y, surface, front_touchable, front_untouchable, frog_group, coins, time, coins_all, frog_level):
     surface.fill((0, 255, 0))
     surface.blit(BACKGROUND, (int(x * BG_TO_TOWER_RATIO), 0))
     surface.blit(BACKGROUND, (int(x * BG_TO_TOWER_RATIO) - 900, 0))
     for i in range(11):
         if 0 <= level + 7 - i < len(tower):
             render_line(x, -y + i * BLOCK_H, tower[level + 7 - i],
-                        (level + 7 - i) % 2, surface, front, level + 7 - i)
+                        (level + 7 - i) % 2, surface, front_touchable, front_untouchable, level + 7 - i, frog_level)
         elif level + 7 - i < 0:
             render_line(x, -y + i * BLOCK_H, ' ' * 16,
-                        (level + 7 - i) % 2, surface, front, level + 7 - i)
+                        (level + 7 - i) % 2, surface, front_touchable, front_untouchable, level + 7 - i, frog_level)
         elif level + 7 - i == len(tower):
             render_finish(-y + (i - 1) * BLOCK_H, surface)
-    front.draw(surface)
+    front_untouchable.draw(surface)
+    front_touchable.draw(surface)
     frog_group.draw(surface)
 
     pygame.draw.rect(surface, (0, 0, 0), (0, 0, 200, 600))
@@ -230,7 +255,7 @@ def render(x, level, y, surface, front, frog_group, coins, time, coins_all):
         text = FONT.render('COINS!', False, (191, 206, 114))
         surface.blit(text, (0, 150))
 
-    return front
+    return front_touchable, front_untouchable
 
 
 # initialisation:
@@ -322,7 +347,7 @@ while running:
         tower = [list(i) for i in world]
 
         # pre-gameplay variables initialisation
-        level = 3
+        level = 2
         y = 15
         # 0 <= y < 120
         x = 0
@@ -334,15 +359,16 @@ while running:
 
         # gameplay:
         while running:
-            front_blocks = pygame.sprite.Group()
+            front_blocks_t = pygame.sprite.Group()
+            front_blocks_unt = pygame.sprite.Group()
             frog_group = pygame.sprite.Group()
             frog_group.add(frog)
-            front_blocks = render(x, level, y, screen, front_blocks,
-                                  frog_group, coin_count, seconds, coins_all)
+            front_blocks_t, front_blocks_unt = render(x, level, y, screen, front_blocks_t, front_blocks_unt,
+                                  frog_group, coin_count, seconds, coins_all, level)
             pygame.display.flip()
 
             down_collide, up_collide, left_collide, right_collide, collected_coins \
-                = frog.check_collisions(front_blocks)
+                = frog.check_collisions(front_blocks_t)
             coin_count += len(collected_coins)
             # removing all the collected coins from the current map
             for coin_x, coin_level in collected_coins:
