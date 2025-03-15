@@ -273,7 +273,7 @@ TOWER_R = 144
 BACKGROUND = load_image('bg.png')
 BG_TO_TOWER_RATIO = 900 / 360
 BGCOLOR = (163, 73, 164)
-FONT = pygame.font.Font('Nouveau_IBM.ttf', 36)
+FONT = pygame.font.Font('Pixel_Emulator.ttf', 36)
 WORLDS = open('worlds.txt')
 NUM_TO_CHR = {
     0: ' ',
